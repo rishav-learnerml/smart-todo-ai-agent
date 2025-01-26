@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "a smart todo-creation agent",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "generate": "drizzle-kit generate --config=drizzle.config.js",
     "migrate": "drizzle-kit migrate --config=drizzle.config.js"
@@ -13,13 +14,10 @@
   },
   "keywords": [
     "ai",
-    "agentic",
-    "ai",
-    "todo",
-    "app",
-    "smart",
-    "todo",
-    "app"
+    "agentic ai",
+    "todo-app",
+    "smart-todo-app",
+    "smart"
   ],
   "author": "rishav chatterjee",
   "license": "MIT",
@@ -30,6 +28,8 @@
   "dependencies": {
     "@types/node": "^22.10.10",
     "drizzle-orm": "^0.38.4",
+    "express": "^4.21.2",
+    "openai": "^4.80.1",
     "pg": "^8.13.1"
   },
   "devDependencies": {
