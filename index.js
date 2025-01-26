@@ -197,8 +197,35 @@ app.post("/api/ai", async (req, res) => {
   }
 });
 
+//autofetch todos
+
 app.get("/api/todos", async (req, res) => {
   res.json(await getAllTodos());
+});
+
+//other manual crud endpoints
+app.post("/api/todos", async (req, res) => {
+  const { todo } = req.body;
+  const id = await createTodo(todo);
+  res.json({ id });
+});
+
+app.get("/api/todos/search", async (req, res) => {
+  const { query } = req.query;
+  res.json(await searchTodo(query));
+});
+
+app.delete("/api/todos/:id", async (req, res) => {
+  const { id } = req.params;
+  await deleteTodoById(id);
+  res.json({ message: "Todo deleted successfully." });
+});
+
+app.put("/api/todos/:id", async (req, res) => {
+  const { id } = req.params;
+  const { todo } = req.body;
+  await updateTodoById(id, todo);
+  res.json({ message: "Todo updated successfully." });
 });
 
 // Start the server
