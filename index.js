@@ -3,8 +3,10 @@ import { todosTable } from "./db/schema.js";
 import { ilike, eq } from "drizzle-orm";
 import express from "express";
 import OpenAI from "openai";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const client = new OpenAI(process.env.OPENAI_API_KEY);
@@ -43,9 +45,30 @@ async function deleteTodoById(id) {
   await db.delete(todosTable).where(eq(todosTable.id, id));
 }
 
+//delete all todos
+
+async function deleteAllTodos() {
+  await db.delete(todosTable);
+}
+
 //update by id
 async function updateTodoById(id, todo) {
-  await db.update(todosTable).set({ todo }).where(eq(todosTable.id, id));
+  console.log(id, todo, "here");
+  if (!todo) {
+    // Extract `id` and `todo` from the input
+    const newid = id.split(",")[0].trim(); // Get the ID and trim whitespace
+    const newtodo = id.split(",")[1].trim(); // Get the new todo and trim whitespace
+
+    // Construct the `set` object with the correct column name (adjust `todoColumn` as needed)
+    const updateData = { todo: newtodo }; // Replace 'todo' with your actual column name if different
+    // Perform the update
+    await db.update(todosTable).set(updateData).where(eq(todosTable.id, newid));
+  } else {
+    // Perform the update
+    await db.update(todosTable).set({ todo }).where(eq(todosTable.id, id));
+  }
+
+  console.log("Database updated successfully:");
 }
 
 const tools = {
@@ -53,6 +76,7 @@ const tools = {
   createTodo: createTodo,
   searchTodo: searchTodo,
   deleteTodoById: deleteTodoById,
+  deleteAllTodos: deleteAllTodos,
   updateTodoById: updateTodoById,
 };
 
@@ -62,7 +86,7 @@ Wait for the user prompt and first PLAN using available tools.
 After Planning, Take ACTION with appropriate tools and wait for OBSERVATION or OBSERVATIONS based on ACTION.
 Once you get OBSERVATION or OBSERVATIONS, Return the AI response based on the START prompt and OBSERVATION or OBSERVATIONS. That will be your OUTPUT state.
 
-You can create, read, update, and delete to-do items. You must strictly follow the JSON output format.
+You can create, read, update, and delete to-do items. You must strictly follow the JSON output format. Do not ask the user unnecessary questions if not needed. Use the available tools to interact with the database.
 
 Todo DB Schema:
 - id: integer, primary key, generated always as identity
@@ -76,6 +100,7 @@ Available Tools:
 - searchTodo(query: string): Searches for all Todos matching the query string in the database using ilike operator.
 - updateTodoById(id: string, todo: string): Updates a Todo by the given id in the database with the new todo string.
 - deleteTodoById(id: string): Deletes a Todo by the given id from the database.
+- deleteAllTodos(): Deletes all Todos from the database.
 
 Example 1:
 START
@@ -126,6 +151,13 @@ START
 {"type":"action","function:"deleteTodoById","input":"1"}
 {"type":"observation","observation":"1"}
 {"type":"output","output":"Your Todo has been deleted successfully."}
+
+Example 3:
+{"type":"user","user":"I want to delete all the todos"}
+{"type":"plan","plan":"I will delete all the todos in the database using the deleteAllTodos tool."}
+{"type":"action","function:"deleteAllTodos"}
+{"type":"observation","observation":""}
+{"type":"output","output":"All Todos have been deleted successfully."}
 `;
 
 const messages = [{ role: "system", content: SYSTEM_PROMPT }];
@@ -134,6 +166,7 @@ const messages = [{ role: "system", content: SYSTEM_PROMPT }];
 // Express API endpoint
 app.post("/api/ai", async (req, res) => {
   const { query } = req.body;
+  console.log(req.body, "query");
 
   // Add user input to the conversation
   const userMessage = {
@@ -156,7 +189,7 @@ app.post("/api/ai", async (req, res) => {
 
       const action = JSON.parse(assistantMessage);
 
-      console.log("action", action);
+      console.log("messages", messages);
 
       if (action.type.toLowerCase() === "output") {
         console.log(action.output);
